@@ -222,9 +222,11 @@ bytesize = 8       # 8 data bits
 ## File Structure
 
 ```
+```
 Modbus-RTU/
 ├── r4dcb08_cli.py      # Command-line interface (main script)
 ├── requirement.txt     # Python dependencies
+├── LICENSE             # MIT License
 └── README.md          # This documentation
 ```
 
@@ -237,4 +239,4 @@ Modbus-RTU/
 
 ## License
 
-This project is open source and available under standard open source licenses.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
