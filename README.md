@@ -2,6 +2,8 @@
 
 A Python library and command-line interface for communicating with R4DCB08 8-channel temperature collectors using Modbus RTU (serial) and TCP protocols.
 
+You can check my blog to more usage examples: [https://hackthechaos.com/blog/ds18b20-rs485-raspberry-pi/](https://hackthechaos.com/blog/ds18b20-rs485-raspberry-pi/)
+
 ## Features
 
 - Read temperatures from all 8 channels
