@@ -219,17 +219,6 @@ bytesize = 8       # 8 data bits
 - **"Channel must be 0-7"**: Invalid channel number specified
 - **"Correction must be between -327.6 and +327.6"**: Correction value out of range
 
-## File Structure
-
-```
-```
-Modbus-RTU/
-├── r4dcb08_cli.py      # Command-line interface (main script)
-├── requirement.txt     # Python dependencies
-├── LICENSE             # MIT License
-└── README.md          # This documentation
-```
-
 ## Hardware Setup
 
 1. Connect R4DCB08 to power supply (6-24V DC)
