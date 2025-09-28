@@ -187,6 +187,10 @@ python r4dcb08_cli.py rtu --port /dev/ttyUSB0 --address 5 --baudrate 19200 read-
 python r4dcb08_cli.py tcp --host 192.168.1.100 read-all
 python r4dcb08_cli.py tcp --host 192.168.1.100 --port 502 read-channel 2
 python r4dcb08_cli.py tcp --host 192.168.1.100 --address 3 set-correction 1 1.5
+
+# TCP with custom port and longer timeout
+python r4dcb08_cli.py tcp --host 192.168.31.223 --port 4196 --timeout 5.0 read-all
+python r4dcb08_cli.py tcp --host 192.168.31.223 --port 4196 --timeout 5.0 read-channel 0
 ```
 
 ### Python API Usage
@@ -277,6 +281,12 @@ bytesize = 8       # 8 data bits
    - Check baud rate setting (default: 9600)  
    - Ensure no other program is using the serial port
    - Verify parity is set to 'N' (None)
+
+3. **TCP connection issues**:
+   - Verify the host IP address is correct and reachable
+   - Check that the TCP port is correct (default: 502, custom: 4196, etc.)
+   - Some TCP connections may require longer timeout (use `--timeout 5.0`)
+   - Ensure firewall allows the connection
 
 ### Temperature Reading Issues
 1. **"No sensor" readings**:
