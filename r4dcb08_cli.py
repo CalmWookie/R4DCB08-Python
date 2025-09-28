@@ -4,42 +4,81 @@ R4DCB08 Temperature Collector Command Line Interface
 ===================================================
 
 A command-line tool for interacting with R4DCB08 8-channel temperature collectors
-using Modbus RTU protocol.
+using Modbus RTU or TCP protocol.
 
 Usage Examples:
-    python r4dcb08_cli.py --port /dev/ttyUSB0 --address 1 read-all
-    python r4dcb08_cli.py --port COM3 --address 2 read-channel 0
-    python r4dcb08_cli.py --port /dev/ttyUSB0 set-correction 3 1.5
+    # RTU (Serial)
+    python r4dcb08_cli.py rtu --port /dev/ttyUSB0 --address 1 read-all
+    python r4dcb08_cli.py rtu --port COM3 --address 2 read-channel 0
+    
+    # TCP
+    python r4dcb08_cli.py tcp --host 192.168.1.100 --port 502 read-all
+    python r4dcb08_cli.py tcp --host 192.168.1.100 read-channel 3
 """
 
 import argparse
 import sys
 from typing import List, Optional
-from pymodbus.client import ModbusSerialClient as ModbusClient
+from pymodbus.client import ModbusSerialClient, ModbusTcpClient
 
 
 class R4DCB08Client:
-    """R4DCB08 Temperature Collector Client"""
+    """R4DCB08 Temperature Collector Client supporting both RTU and TCP"""
     
-    def __init__(self, port: str, address: int = 1, baudrate: int = 9600, timeout: float = 1.0):
-        """Initialize the R4DCB08 client."""
-        self.port = port
+    def __init__(self, address: int = 1, timeout: float = 1.0, 
+                 # RTU parameters
+                 serial_port: str = None, baudrate: int = 9600,
+                 # TCP parameters  
+                 host: str = None, tcp_port: int = 502):
+        """
+        Initialize the R4DCB08 client.
+        
+        Args:
+            address: Modbus device address (1-247)
+            timeout: Communication timeout in seconds
+            serial_port: Serial port for RTU (e.g., "/dev/ttyUSB0", "COM3")
+            baudrate: RTU baud rate (1200, 2400, 4800, 9600, 19200)
+            host: TCP host IP address (e.g., "192.168.1.100")
+            tcp_port: TCP port number (default: 502)
+        """
         self.address = address
-        self.baudrate = baudrate
         self.timeout = timeout
+        self.serial_port = serial_port
+        self.baudrate = baudrate
+        self.host = host
+        self.tcp_port = tcp_port
         self.client = None
+        self.connection_type = None
+        
+        # Determine connection type
+        if serial_port and host:
+            raise ValueError("Cannot specify both serial_port and host. Choose RTU or TCP.")
+        elif serial_port:
+            self.connection_type = "RTU"
+        elif host:
+            self.connection_type = "TCP"
+        else:
+            raise ValueError("Must specify either serial_port (RTU) or host (TCP)")
         
     def connect(self) -> bool:
-        """Connect to the device."""
+        """Connect to the device using RTU or TCP."""
         try:
-            self.client = ModbusClient(
-                port=self.port,
-                baudrate=self.baudrate,
-                parity='N',  # No parity for R4DCB08
-                stopbits=1,
-                bytesize=8,
-                timeout=self.timeout
-            )
+            if self.connection_type == "RTU":
+                self.client = ModbusSerialClient(
+                    port=self.serial_port,
+                    baudrate=self.baudrate,
+                    parity='N',  # No parity for R4DCB08
+                    stopbits=1,
+                    bytesize=8,
+                    timeout=self.timeout
+                )
+            else:  # TCP
+                self.client = ModbusTcpClient(
+                    host=self.host,
+                    port=self.tcp_port,
+                    timeout=self.timeout
+                )
+            
             return self.client.connect()
         except Exception as e:
             print(f"Connection error: {e}")
@@ -209,66 +248,111 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s --port /dev/ttyUSB0 --address 1 read-all
-  %(prog)s --port COM3 --address 2 read-channel 0
-  %(prog)s --port /dev/ttyUSB0 set-correction 3 1.5
-  %(prog)s --port /dev/ttyUSB0 read-corrections
+  # RTU (Serial) connection
+  %(prog)s rtu --port /dev/ttyUSB0 --address 1 read-all
+  %(prog)s rtu --port COM3 --address 2 read-channel 0
+  %(prog)s rtu --port /dev/ttyUSB0 set-correction 3 1.5
+  
+  # TCP connection  
+  %(prog)s tcp --host 192.168.1.100 --port 502 read-all
+  %(prog)s tcp --host 192.168.1.100 read-channel 3
+  %(prog)s tcp --host 192.168.1.100 --address 5 set-correction 0 2.1
         """
     )
     
-    # Connection parameters
-    parser.add_argument('--port', '-p', required=True,
-                        help='Serial port (e.g., /dev/ttyUSB0, COM3)')
-    parser.add_argument('--address', '-a', type=int, default=1,
-                        help='Modbus device address (1-247, default: 1)')
-    parser.add_argument('--baudrate', '-b', type=int, default=9600,
-                        choices=[1200, 2400, 4800, 9600, 19200],
-                        help='Baud rate (default: 9600)')
-    parser.add_argument('--timeout', '-t', type=float, default=1.0,
-                        help='Communication timeout in seconds (default: 1.0)')
+    # Connection type subparsers
+    connection_parsers = parser.add_subparsers(dest='connection_type', help='Connection type')
+    connection_parsers.required = True
     
-    # Commands
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    # RTU connection parser
+    rtu_parser = connection_parsers.add_parser('rtu', help='Modbus RTU (Serial) connection')
+    rtu_parser.add_argument('--port', '-p', required=True,
+                           help='Serial port (e.g., /dev/ttyUSB0, COM3)')
+    rtu_parser.add_argument('--address', '-a', type=int, default=1,
+                           help='Modbus device address (1-247, default: 1)')
+    rtu_parser.add_argument('--baudrate', '-b', type=int, default=9600,
+                           choices=[1200, 2400, 4800, 9600, 19200],
+                           help='Baud rate (default: 9600)')
+    rtu_parser.add_argument('--timeout', '-t', type=float, default=1.0,
+                           help='Communication timeout in seconds (default: 1.0)')
     
-    # Read all temperatures
-    subparsers.add_parser('read-all', help='Read temperatures from all 8 channels')
+    # TCP connection parser  
+    tcp_parser = connection_parsers.add_parser('tcp', help='Modbus TCP connection')
+    tcp_parser.add_argument('--host', '-H', required=True,
+                           help='TCP host IP address (e.g., 192.168.1.100)')
+    tcp_parser.add_argument('--port', '-p', type=int, default=502,
+                           help='TCP port (default: 502)')
+    tcp_parser.add_argument('--address', '-a', type=int, default=1,
+                           help='Modbus device address (1-247, default: 1)')
+    tcp_parser.add_argument('--timeout', '-t', type=float, default=1.0,
+                           help='Communication timeout in seconds (default: 1.0)')
     
-    # Read single channel
-    read_parser = subparsers.add_parser('read-channel', help='Read temperature from specific channel')
-    read_parser.add_argument('channel', type=int, choices=range(8),
-                            help='Channel number (0-7)')
-    
-    # Set temperature correction
-    corr_parser = subparsers.add_parser('set-correction', help='Set temperature correction for a channel')
-    corr_parser.add_argument('channel', type=int, choices=range(8),
-                            help='Channel number (0-7)')
-    corr_parser.add_argument('correction', type=float,
-                            help='Correction value in °C (-327.6 to +327.6)')
-    
-    # Read temperature corrections
-    subparsers.add_parser('read-corrections', help='Read temperature corrections from all channels')
+    # Add command subparsers to both RTU and TCP
+    for conn_parser in [rtu_parser, tcp_parser]:
+        cmd_subparsers = conn_parser.add_subparsers(dest='command', help='Available commands')
+        cmd_subparsers.required = True
+        
+        # Read all temperatures
+        cmd_subparsers.add_parser('read-all', help='Read temperatures from all 8 channels')
+        
+        # Read single channel
+        read_parser = cmd_subparsers.add_parser('read-channel', help='Read temperature from specific channel')
+        read_parser.add_argument('channel', type=int, choices=range(8),
+                                help='Channel number (0-7)')
+        
+        # Set temperature correction
+        corr_parser = cmd_subparsers.add_parser('set-correction', help='Set temperature correction for a channel')
+        corr_parser.add_argument('channel', type=int, choices=range(8),
+                                help='Channel number (0-7)')
+        corr_parser.add_argument('correction', type=float,
+                                help='Correction value in °C (-327.6 to +327.6)')
+        
+        # Read temperature corrections
+        cmd_subparsers.add_parser('read-corrections', help='Read temperature corrections from all channels')
     
     args = parser.parse_args()
-    
-    if not args.command:
-        parser.print_help()
-        return 1
     
     # Validate device address
     if not 1 <= args.address <= 247:
         print("Error: Device address must be between 1 and 247")
         return 1
     
-    # Create client and connect
-    client = R4DCB08Client(args.port, args.address, args.baudrate, args.timeout)
-    
-    if not client.connect():
-        print(f"Error: Failed to connect to R4DCB08 at {args.port}")
-        print("Troubleshooting:")
-        print("1. Check that the device is powered and connected")
-        print("2. Verify the serial port path is correct")
-        print("3. Ensure no other program is using the serial port")
-        print("4. Check device address and baud rate settings")
+    # Create client based on connection type
+    try:
+        if args.connection_type == 'rtu':
+            client = R4DCB08Client(
+                address=args.address,
+                timeout=args.timeout,
+                serial_port=args.port,
+                baudrate=args.baudrate
+            )
+            connection_info = f"RTU at {args.port} (baud: {args.baudrate}, address: {args.address})"
+        else:  # tcp
+            client = R4DCB08Client(
+                address=args.address, 
+                timeout=args.timeout,
+                host=args.host,
+                tcp_port=args.port
+            )
+            connection_info = f"TCP at {args.host}:{args.port} (address: {args.address})"
+        
+        if not client.connect():
+            print(f"Error: Failed to connect to R4DCB08 via {connection_info}")
+            print("Troubleshooting:")
+            if args.connection_type == 'rtu':
+                print("1. Check that the device is powered and connected")
+                print("2. Verify the serial port path is correct")
+                print("3. Ensure no other program is using the serial port")
+                print("4. Check device address and baud rate settings")
+            else:  # tcp
+                print("1. Check that the device is powered and network accessible")
+                print("2. Verify the IP address and port are correct")
+                print("3. Ensure no firewall is blocking the connection")
+                print("4. Check device address setting")
+            return 1
+        
+    except Exception as e:
+        print(f"Error creating client: {e}")
         return 1
     
     try:

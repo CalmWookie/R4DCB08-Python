@@ -1,6 +1,6 @@
 # R4DCB08 Temperature Collector Python Interface
 
-A Python library and command-line interface for communicating with R4DCB08 8-channel temperature collectors using Modbus RTU protocol.
+A Python library and command-line interface for communicating with R4DCB08 8-channel temperature collectors using Modbus RTU (serial) and TCP protocols.
 
 ## Features
 
@@ -8,6 +8,7 @@ A Python library and command-line interface for communicating with R4DCB08 8-cha
 - Read temperature from individual channels  
 - Set temperature correction values for calibration
 - Read current temperature corrections
+- Support for both Modbus RTU (serial) and TCP connections
 - Command-line interface for easy automation
 - Simple Python API for integration
 
@@ -50,25 +51,50 @@ pymodbus
 
 ### Command Line Interface
 
-The `r4dcb08_cli.py` script provides a complete command-line interface:
+The `r4dcb08_cli.py` script provides a complete command-line interface supporting both Modbus RTU (serial) and TCP connections:
 
 #### Basic Usage
 ```bash
-python r4dcb08_cli.py [OPTIONS] COMMAND
+python r4dcb08_cli.py {rtu|tcp} [OPTIONS] COMMAND
 ```
 
-#### Connection Options
-- `--port, -p`: Serial port (required, e.g., `/dev/ttyUSB0`, `COM3`)
+#### Connection Types
+
+##### RTU (Serial) Connection
+```bash
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 [OPTIONS] COMMAND
+```
+
+**RTU Connection Options:**
+- `--port, -p`: Serial port (required, e.g., `/dev/ttyUSB0`, `COM3`)  
 - `--address, -a`: Modbus device address (1-247, default: 1)
 - `--baudrate, -b`: Baud rate (1200, 2400, 4800, 9600, 19200, default: 9600)
+- `--timeout, -t`: Communication timeout in seconds (default: 1.0)
+
+##### TCP Connection
+```bash
+python r4dcb08_cli.py tcp --host 192.168.1.100 [OPTIONS] COMMAND
+```
+
+**TCP Connection Options:**
+- `--host, -H`: TCP host IP address (required, e.g., `192.168.1.100`)
+- `--port, -p`: TCP port (default: 502)
+- `--address, -a`: Modbus device address (1-247, default: 1)
 - `--timeout, -t`: Communication timeout in seconds (default: 1.0)
 
 #### Available Commands
 
 ##### 1. Read All Temperatures
 Read temperatures from all 8 channels:
+
+**RTU:**
 ```bash
-python r4dcb08_cli.py --port /dev/ttyUSB0 --address 1 read-all
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 --address 1 read-all
+```
+
+**TCP:**
+```bash
+python r4dcb08_cli.py tcp --host 192.168.1.100 read-all
 ```
 
 Output:
@@ -84,8 +110,15 @@ Channel 3: 21.8°C
 
 ##### 2. Read Single Channel Temperature
 Read temperature from a specific channel (0-7):
+
+**RTU:**
 ```bash
-python r4dcb08_cli.py --port /dev/ttyUSB0 read-channel 0
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 read-channel 0
+```
+
+**TCP:**
+```bash
+python r4dcb08_cli.py tcp --host 192.168.1.100 read-channel 3
 ```
 
 Output:
@@ -95,19 +128,33 @@ Channel 0: 22.5°C
 
 ##### 3. Set Temperature Correction
 Set a temperature correction value for calibration:
+
+**RTU:**
 ```bash
-python r4dcb08_cli.py --port /dev/ttyUSB0 set-correction 3 1.5
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 set-correction 3 1.5
 ```
 
-This adds +1.5°C correction to channel 3. Corrections can be negative:
+**TCP:**
 ```bash
-python r4dcb08_cli.py --port /dev/ttyUSB0 set-correction 2 -0.8
+python r4dcb08_cli.py tcp --host 192.168.1.100 set-correction 0 2.1
+```
+
+This adds a correction to the specified channel. Corrections can be negative:
+```bash
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 set-correction 2 -0.8
 ```
 
 ##### 4. Read Temperature Corrections
 View current correction values for all channels:
+
+**RTU:**
 ```bash
-python r4dcb08_cli.py --port /dev/ttyUSB0 read-corrections
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 read-corrections
+```
+
+**TCP:**
+```bash
+python r4dcb08_cli.py tcp --host 192.168.1.100 read-corrections
 ```
 
 Output:
@@ -124,28 +171,34 @@ Channel 3: +1.5°C
 #### Example Commands
 
 ```bash
-# Linux/macOS examples
-python r4dcb08_cli.py --port /dev/ttyUSB0 --address 1 read-all
-python r4dcb08_cli.py --port /dev/ttyUSB0 read-channel 5
-python r4dcb08_cli.py --port /dev/ttyUSB0 set-correction 0 2.1
+# RTU (Serial) examples - Linux/macOS
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 --address 1 read-all
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 read-channel 5
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 set-correction 0 2.1
 
-# Windows examples  
-python r4dcb08_cli.py --port COM3 --address 2 read-all
-python r4dcb08_cli.py --port COM3 --baudrate 19200 read-channel 3
+# RTU (Serial) examples - Windows  
+python r4dcb08_cli.py rtu --port COM3 --address 2 read-all
+python r4dcb08_cli.py rtu --port COM3 --baudrate 19200 read-channel 3
 
-# Different device address and baud rate
-python r4dcb08_cli.py --port /dev/ttyUSB0 --address 5 --baudrate 19200 read-all
+# RTU with different device address and baud rate
+python r4dcb08_cli.py rtu --port /dev/ttyUSB0 --address 5 --baudrate 19200 read-all
+
+# TCP examples
+python r4dcb08_cli.py tcp --host 192.168.1.100 read-all
+python r4dcb08_cli.py tcp --host 192.168.1.100 --port 502 read-channel 2
+python r4dcb08_cli.py tcp --host 192.168.1.100 --address 3 set-correction 1 1.5
 ```
 
 ### Python API Usage
 
 You can also use the R4DCB08Client class directly in your Python code:
 
+#### RTU (Serial) Example
 ```python
 from r4dcb08_cli import R4DCB08Client
 
-# Create client
-client = R4DCB08Client("/dev/ttyUSB0", address=1, baudrate=9600)
+# Create RTU client
+client = R4DCB08Client(address=1, serial_port="/dev/ttyUSB0", baudrate=9600)
 
 # Connect
 if client.connect():
@@ -162,6 +215,29 @@ if client.connect():
         
         # Set correction
         client.set_temperature_correction(0, 1.5)
+        
+    finally:
+        client.disconnect()
+```
+
+#### TCP Example
+```python
+from r4dcb08_cli import R4DCB08Client
+
+# Create TCP client
+client = R4DCB08Client(address=1, host="192.168.1.100", tcp_port=502)
+
+# Connect
+if client.connect():
+    try:
+        # Read all temperatures
+        temperatures = client.read_all_temperatures()
+        for i, temp in enumerate(temperatures):
+            if temp is not None:
+                print(f"Channel {i}: {temp:.1f}°C")
+        
+        # Set correction for channel 2
+        client.set_temperature_correction(2, -0.5)
         
     finally:
         client.disconnect()
