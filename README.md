@@ -137,16 +137,6 @@ python r4dcb08_cli.py --port COM3 --baudrate 19200 read-channel 3
 python r4dcb08_cli.py --port /dev/ttyUSB0 --address 5 --baudrate 19200 read-all
 ```
 
-### Basic Python Example
-
-The `modbus_py.py` script shows basic usage:
-
-```bash
-python modbus_py.py
-```
-
-Edit the script to change the serial port path for your system.
-
 ### Python API Usage
 
 You can also use the R4DCB08Client class directly in your Python code:
@@ -206,14 +196,7 @@ bytesize = 8       # 8 data bits
    - Check serial cable connection
    - Verify correct serial port path
 
-2. **Permission denied** (Linux/macOS):
-   ```bash
-   sudo chmod 666 /dev/ttyUSB0
-   # or add user to dialout group:
-   sudo usermod -a -G dialout $USER
-   ```
-
-3. **Communication errors**:
+2. **Communication errors**:
    - Confirm device address (default: 1)
    - Check baud rate setting (default: 9600)  
    - Ensure no other program is using the serial port
@@ -222,8 +205,8 @@ bytesize = 8       # 8 data bits
 ### Temperature Reading Issues
 1. **"No sensor" readings**:
    - Check DS18B20 sensor connections
-   - Verify sensor power supply (3.3V or 5V)
-   - Test sensors individually
+   - Verify if sensors is powered by checking voltage between 5V and ground, also D* line should have about 5 V to ground
+   - Test sensors individually or replace with known working sensors
 
 2. **Incorrect temperature values**:
    - Check temperature corrections with `read-corrections`
@@ -241,7 +224,6 @@ bytesize = 8       # 8 data bits
 ```
 Modbus-RTU/
 ├── r4dcb08_cli.py      # Command-line interface (main script)
-├── modbus_py.py        # Basic usage example
 ├── requirement.txt     # Python dependencies
 └── README.md          # This documentation
 ```

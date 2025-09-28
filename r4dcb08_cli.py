@@ -85,7 +85,7 @@ class R4DCB08Client:
     def read_all_temperatures(self) -> List[Optional[float]]:
         """Read temperatures from all 8 channels."""
         try:
-            result = self.client.read_holding_registers(0, 8, device_id=self.address)
+            result = self.client.read_holding_registers(0, count=8, device_id=self.address)
             if result.isError():
                 raise Exception(f"Modbus error: {result}")
             
@@ -99,7 +99,7 @@ class R4DCB08Client:
             raise ValueError("Channel must be 0-7")
         
         try:
-            result = self.client.read_holding_registers(channel, 1, device_id=self.address)
+            result = self.client.read_holding_registers(channel, count=1, device_id=self.address)
             if result.isError():
                 raise Exception(f"Modbus error: {result}")
             
@@ -130,7 +130,7 @@ class R4DCB08Client:
     def read_temperature_corrections(self) -> List[Optional[float]]:
         """Read temperature corrections from all 8 channels."""
         try:
-            result = self.client.read_holding_registers(0x0008, 8, device_id=self.address)
+            result = self.client.read_holding_registers(0x0008, count=8, device_id=self.address)
             if result.isError():
                 raise Exception(f"Modbus error: {result}")
             
